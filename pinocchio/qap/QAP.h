@@ -117,6 +117,9 @@ private:
 	int defineInputWireValues(EncodedEltType** bases, FieldElt** exps, int offset, WireVector& wires, EncodedEltType* key);
 
 	template <typename EncodedEltType>
+	void defineWitnessWireValues(EncodedEltType** bases, FieldElt** exps, int offset, WireVector& wires, EncodedEltType* key);
+
+	template <typename EncodedEltType>
 	void applyAllCircuitCoefficients(variables_map& config, EncodedEltType* key, EncodedEltType& result, Timer* timer);
 
 	template <typename EncodedEltType>

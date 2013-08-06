@@ -65,13 +65,13 @@ class DFGExpr:
 	def __hash__(self):
 		return id(self)
 
-class Input(DFGExpr):
+class InputBase(DFGExpr):
 	def __init__(self, factory, storage_key):
 		DFGExpr.__init__(self, factory)
 		self.storage_key = storage_key
 
 	def __repr__(self):
-		return "(Input %s)" % self.storage_key
+		return "(%s %s)" % (self.__class__.__name__, self.storage_key)
 
 	def evaluate(self, collapser):
 		return collapser.get_input(self.storage_key)
@@ -92,6 +92,14 @@ class Input(DFGExpr):
 		if (i!=0): return i
 		i = cmp(self.storage_key, other.storage_key)
 		return i
+
+class Input(InputBase):
+	def __init__(self, factory, storage_key):
+		InputBase.__init__(self, factory, storage_key)
+
+class NIZKInput(InputBase):
+	def __init__(self, factory, storage_key):
+		InputBase.__init__(self, factory, storage_key)
 
 class Undefined(DFGExpr):
 	def __init__(self, factory):

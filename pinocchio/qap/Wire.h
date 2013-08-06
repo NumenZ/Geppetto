@@ -20,6 +20,7 @@ public:
 	FieldElt value;
 	bool visited;	// Used for keeping track of our progress when traversing the circuit
 	bool trueInput;	// Verified input to the circuit
+	bool witnessInput;	// An input that's part of the prover's secret witness
 	bool trueOutput;	// Verified output from the circuit
 	long long id;
 };

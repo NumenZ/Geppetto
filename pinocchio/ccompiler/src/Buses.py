@@ -6,8 +6,9 @@ from FieldOps import *
 
 MAJOR_INPUT=0
 MAJOR_INPUT_ONE=1
-MAJOR_LOGIC=2
-MAJOR_OUTPUT=3
+MAJOR_INPUT_NIZK=2
+MAJOR_LOGIC=3
+MAJOR_OUTPUT=4
 
 class Bus:
 	def __init__(self, board, major):
@@ -97,7 +98,7 @@ class BooleanBus(Bus):
 
 class ZeroBus(BooleanBus):
 	def __init__(self, board):
-		BooleanBus.__init__(self, board, MAJOR_INPUT_ONE)
+		BooleanBus.__init__(self, board, MAJOR_LOGIC)
 
 	def do_trace_count(self):
 		# emitting zero here ensures that we don't needlessly widen

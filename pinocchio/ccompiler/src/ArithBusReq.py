@@ -7,9 +7,10 @@ from BusReq import *
 # Arithmetic operators
 ##############################################################################
 
-class ArithmeticInputReq(BusReq):
-	def __init__(self, reqfactory, expr, type):
+class ArithmeticInputBaseReq(BusReq):
+	def __init__(self, bus_class, reqfactory, expr, type):
 		BusReq.__init__(self, reqfactory, expr, type)
+		self.bus_class = bus_class
 
 	def natural_type(self):
 		return ARITHMETIC_TYPE
@@ -18,7 +19,15 @@ class ArithmeticInputReq(BusReq):
 		return []
 
 	def natural_impl(self):
-		return ArithmeticInputBus(self.board(), self.expr.storage_key.idx)
+		return self.bus_class(self.board(), self.expr.storage_key.idx)
+
+class ArithmeticInputReq(ArithmeticInputBaseReq):
+	def __init__(self, reqfactory, expr, type):
+		ArithmeticInputBaseReq.__init__(self, ArithmeticInputBus, reqfactory, expr, type)
+
+class ArithmeticNIZKInputReq(ArithmeticInputBaseReq):
+	def __init__(self, reqfactory, expr, type):
+		ArithmeticInputBaseReq.__init__(self, ArithmeticNIZKInputBus, reqfactory, expr, type)
 
 class AddReq(BinaryOpReq):
 	def __init__(self, reqfactory, expr, type):

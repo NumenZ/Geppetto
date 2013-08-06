@@ -4,8 +4,8 @@ from DFG import *
 from ArithBusReq import *
 
 class ArithFactory(ReqFactory):
-	def __init__(self, output_filename, circuit_inputs, circuit_outputs, bit_width):
-		ReqFactory.__init__(self, output_filename, circuit_inputs, circuit_outputs, bit_width)
+	def __init__(self, output_filename, circuit_inputs, circuit_nizk_inputs, circuit_outputs, bit_width):
+		ReqFactory.__init__(self, output_filename, circuit_inputs, circuit_nizk_inputs, circuit_outputs, bit_width)
 
 	def type(self):
 		return ARITHMETIC_TYPE
@@ -16,12 +16,17 @@ class ArithFactory(ReqFactory):
 	def make_input_req(self, expr):
 		return ArithmeticInputReq(self, expr, self.type())
 
+	def make_nizk_input_req(self, expr):
+		return ArithmeticNIZKInputReq(self, expr, self.type())
+
 	def make_output_bus(self, expr_bus, idx):
 		return ArithmeticOutputBus(self.get_board(), expr_bus, idx)
 
 	def make_req(self, expr, type):
 		if (isinstance(expr, Input)):
 			result = ArithmeticInputReq(self, expr, type)
+		elif (isinstance(expr, NIZKInput)):
+			result = ArithmeticNIZKInputReq(self, expr, type)
 		elif (isinstance(expr, Conditional)):
 			result = ConditionalReq(self, expr, type)
 		elif (isinstance(expr, CmpLT)):

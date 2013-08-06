@@ -1,5 +1,7 @@
 import operator
 import os
+import sys
+import traceback
 
 from Collapser import Collapser
 from Board import Board
@@ -8,7 +10,7 @@ from DFG import *
 from BusReq import *
 
 class ReqFactory(Collapser):
-	def __init__(self, output_filename, circuit_inputs, circuit_outputs, bit_width):
+	def __init__(self, output_filename, circuit_inputs, circuit_nizk_inputs, circuit_outputs, bit_width):
 		Collapser.__init__(self)
 
 		# Setup
@@ -23,7 +25,7 @@ class ReqFactory(Collapser):
 
 		# Generation of Buses from DFGExprs
 		self.process_outputs(circuit_outputs)
-		self.process_inputs(circuit_inputs)
+		self.process_inputs(circuit_inputs, circuit_nizk_inputs)
 		
 		# Generation of FieldOps from Buses
 		self.layout_buses()
@@ -71,19 +73,39 @@ class ReqFactory(Collapser):
 
 	# Ensure all inputs are represented in circuit,
 	# even if they're unused.
-	def process_inputs(self, circuit_inputs):
-		for idx in range(len(circuit_inputs)):
-			expr = circuit_inputs[idx]
-			req = self.make_input_req(expr)
+	def process_inputs_core(self, input_list, method):
+		for idx in range(len(input_list)):
+			#print "processing %s %d/%d" % (method.__name__, idx, len(input_list))
+			expr = input_list[idx]
+			req = method(expr)
 			try:
 				bus = self.lookup(req)
 				bus.set_used(True)
 			except KeyError:
 				bus = self.collapse_tree(req)
 				bus.set_used(False)
+
+	def process_inputs(self, circuit_inputs, circuit_nizk_inputs):
+		self.process_inputs_core(circuit_inputs, self.make_input_req)
+		self.process_inputs_core(circuit_nizk_inputs, self.make_nizk_input_req)
 		
+	def debug_investigate_buses(self, bus):
+		print "--------------------------------------------------"
+		print "add_extra_bus(%s)" % bus.__class__.__name__
+		try:
+			raise Exception()
+		except:
+			sys.stdout.flush()
+			sys.stderr.flush()
+			traceback.print_stack()
+			sys.stdout.flush()
+			sys.stderr.flush()
+		self.debug_print_buses()
+		print
+
 	def add_extra_bus(self, bus):
 		self.buses.add(bus)
+		#self.debug_investigate_buses(bus)
 
 	def get_board(self):
 		return self._board
@@ -98,7 +120,15 @@ class ReqFactory(Collapser):
 	def collapse_impl(self, key):
 		bus = key.collapse_impl()
 		self.buses.add(bus)
+		#self.debug_investigate_buses(bus)
 		return bus
+	
+	def debug_print_buses(self):
+		bus_list = list(self.buses)
+		bus_list.sort()
+		for bus_i in range(len(bus_list)):
+			print "  bus[%d] %s" % (
+				bus_i, bus_list[bus_i].__class__.__name__)
 
 	# layout phase, after the wiring diagram has been collected.
 	def layout_buses(self):
@@ -106,10 +136,11 @@ class ReqFactory(Collapser):
 		# defined before they're used), and then allocate wire ids.
 		bus_list = list(self.buses)
 		bus_list.sort()
+		#self.debug_print_buses()
 
 		next_idx = 0
 		for bus in bus_list:
-#			print "layout_buses visits %s" % bus
+			#print "layout_buses visits %s" % bus
 			bus_wire_count = bus.get_wire_count()
 			allocated_wires = map(Wire,
 				range(next_idx, next_idx+bus_wire_count))

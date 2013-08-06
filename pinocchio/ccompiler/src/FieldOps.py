@@ -17,17 +17,26 @@ class FieldOp:
 	def assert_int(self, value):
 		assert(type(value)==types.IntType or type(value)==types.LongType)
 		
-class FieldInput(FieldOp):
-	def __init__(self, comment, out_wire):
+class FieldInputBase(FieldOp):
+	def __init__(self, command, comment, out_wire):
 		FieldOp.__init__(self, comment)
+		self._command = command
 		assert(isinstance(out_wire, Wire))
 		self.out_wire = out_wire
 
 	def field_command(self):
-		return "input %s" % (self.out_wire)
+		return "%s %s" % (self._command, self.out_wire)
 
 	def input_wires(self): return WireList([])
 	def output_wires(self): return WireList([self.out_wire])
+
+class FieldInput(FieldInputBase):
+	def __init__(self, comment, out_wire):
+		FieldInputBase.__init__(self, "input", comment, out_wire)
+
+class FieldNIZKInput(FieldInputBase):
+	def __init__(self, comment, out_wire):
+		FieldInputBase.__init__(self, "nizkinput", comment, out_wire)
 
 class FieldOutput(FieldOp):
 	def __init__(self, comment, in_wire):

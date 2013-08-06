@@ -30,6 +30,7 @@ public:
 	// Keep all of these values explicitly, 
 	// since these are the ones the QAP cares about
 	WireVector inputs;			// Input values
+	WireVector witness;			// Prover's secret witness inputs
 	WireVector intermediates;	// Value of the output of each multiplication gate in the interior of the circuit
 	WireVector outputs;			// Value of the circuit's actual output wires
 	WireVector wires;			// Holds all of the wires

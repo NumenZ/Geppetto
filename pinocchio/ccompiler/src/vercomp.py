@@ -1,6 +1,7 @@
 #!/usr/bin/python
 
 import pickle
+import json
 import argparse
 import sys
 import types
@@ -65,6 +66,8 @@ class FuncMultiplyDefined(Exception):
 	def __init__(self, s): self.s = s
 	def __str__(self): return self.s
 	
+class MalformedOutsourceParameters(Exception): pass
+
 class NoInputSpecDefined(Exception): pass
 
 
@@ -939,32 +942,60 @@ class Vercomp:
 		func_def = self.find_func("outsource")
 		param_decls = func_def.decl.type.args.params
 
-		input_state = self.make_global_storage(param_decls[0], symtab)
-		output_state = self.make_global_storage(param_decls[1], input_state.symtab)
-		symtab = output_state.symtab
-		arg_exprs = [input_state.expr, output_state.expr]
+		if (len(param_decls)==3):
+			has_nizk = True
+		elif (len(param_decls)==2):
+			has_nizk = False
+		else:
+			raise MalformedOutsourceParameters()
+
+		INPUT_ARG_IDX = 0
+		NIZK_ARG_IDX = 1
+		OUTPUT_ARG_IDX = -1	# last, regardless of if there's a nizk input
+		arg_exprs = []
+		input_state = self.make_global_storage(param_decls[INPUT_ARG_IDX], symtab)
+		state = input_state
+		arg_exprs.append(input_state.expr)
+		if (has_nizk):
+			nizk_state = self.make_global_storage(param_decls[NIZK_ARG_IDX], state.symtab)
+			state = nizk_state
+			arg_exprs.append(nizk_state.expr)
+		output_state = self.make_global_storage(param_decls[OUTPUT_ARG_IDX], state.symtab)
+		state = output_state
+		arg_exprs.append(state.expr)
+		symtab = state.symtab
 
 		symtab = self.create_scope(
 			param_decls, arg_exprs, symtab)
-		in_sym = Symbol(param_decls[0].name)
-		#print "sym %s" % in_sym
-		input_storage_ref = symtab.lookup(in_sym).deref()
-		#print "input_storage_ref %s" % input_storage_ref
-		#print "root_funccall symtab: %s" % symtab
-		assert(input_storage_ref.idx==0)
-		self.inputs = []
-		for idx in range(input_storage_ref.type.sizeof()):
-			sk = StorageKey(input_storage_ref.storage, idx)
-			input = self.dfg(Input, sk)
-			self.inputs.append(input)
-			symtab.assign(sk, input)
+
+		def create_input_keys(param_decl_idx, class_):
+			in_sym = Symbol(param_decls[param_decl_idx].name)
+			#print "sym %s" % in_sym
+			input_storage_ref = symtab.lookup(in_sym).deref()
+			#print "input_storage_ref %s" % input_storage_ref
+			#print "root_funccall symtab: %s" % symtab
+			assert(input_storage_ref.idx==0)
+			input_list = []
+			for idx in range(input_storage_ref.type.sizeof()):
+				#print "create_input_keys(%s)[%d]" % (class_.__name__, idx)
+				sk = StorageKey(input_storage_ref.storage, idx)
+				input = self.dfg(class_, sk)
+				input_list.append(input)
+				symtab.assign(sk, input)
+			return input_list
+		
+		self.inputs = create_input_keys(INPUT_ARG_IDX, Input)
+		self.nizk_inputs = []
+		if (has_nizk):
+			self.nizk_inputs = create_input_keys(NIZK_ARG_IDX, NIZKInput)
+
 		#print "root_funccall symtab: %s" % symtab
 		result_symtab = self.transform_compound(
 			func_def.body, symtab, func_scope=True)
 		#print "root_funccall result_symtab:"
 		#result_symtab.dbg_dump_path()
 			
-		out_sym = Symbol(param_decls[1].name)
+		out_sym = Symbol(param_decls[OUTPUT_ARG_IDX].name)
 		output = result_symtab.lookup(out_sym).deref()
 		return State(output, result_symtab)
 
@@ -1077,6 +1108,8 @@ def main(argv):
 		help="print output expressions on stdout")
 	parser.add_argument('--il', dest='il_file',
 		help='intermediate circuit output file')
+	parser.add_argument('--json', dest='json_file',
+		help='json version of intermediate circuit output file')
 	parser.add_argument('--arith', dest='arith_file',
 		help='arithmetic circuit output file')
 	parser.add_argument('--bit-width', dest='bit_width',
@@ -1123,17 +1156,23 @@ def main(argv):
 		pickle.dump(vercomp.output, fp)
 		fp.close()
 
+	if (args.json_file!=None):
+		timing.phase("emit_json")
+		fp = open(args.json_file, "w")
+		json.dump(vercomp.output, fp)
+		fp.close()
+
 	if (args.arith_file!=None):
 		timing.phase("emit_arith")
 		if (vercomp.progress):
 			print "Compilation complete; emitting arith."
-		ArithFactory(args.arith_file, vercomp.inputs, vercomp.output, vercomp.bit_width)
+		ArithFactory(args.arith_file, vercomp.inputs, vercomp.nizk_inputs, vercomp.output, vercomp.bit_width)
 
 	if (args.bool_file!=None):
 		timing.phase("emit_bool")
 		if (vercomp.progress):
 			print "Compilation complete; emitting bool."
-		BooleanFactory(args.bool_file, vercomp.inputs, vercomp.output, vercomp.bit_width)
+		BooleanFactory(args.bool_file, vercomp.inputs, vercomp.nizk_inputs, vercomp.output, vercomp.bit_width)
 
 	timing.phase("done")
 

@@ -705,9 +705,9 @@ Keys* QAP::genKeys(variables_map& config) {
 		}		
 #else // Defined CHECK_NON_ZERO_IO
 		// Secret key holds r1*v_in, r2*alpha*w_in, r3*y_out; all evaluated at s 
-		sk->sizeOfv = (int) circuit->inputs.size();
-		sk->numWs = (int) circuit->inputs.size();
-		sk->numYs = (int) (circuit->inputs.size() + circuit->outputs.size());	// On input-level split gates, y is non-zero for some inputs
+		sk->sizeOfv = (int) circuit->inputs.size() - (int) circuit->witness.size();
+		sk->numWs = (int) circuit->inputs.size() - (int) circuit->witness.size();
+		sk->numYs = (int) (circuit->inputs.size() + circuit->outputs.size() - (int) circuit->witness.size());	// On input-level split gates, y is non-zero for some inputs
 
 		sk->v = new FieldElt[sk->sizeOfv];  
 		sk->alphaWs = new FieldElt[sk->numWs];  
@@ -715,7 +715,7 @@ Keys* QAP::genKeys(variables_map& config) {
 
 		FieldElt rWalphaW;
 		field->mul(rW, alphaW, rWalphaW);
-		for (int i = 0; i < circuit->inputs.size(); i++) {
+		for (int i = 0; i < circuit->inputs.size() - circuit->witness.size(); i++) {
 			field->mul(rV, vAtS[i+1], sk->v[i]);		// v_in. vAtS uses +1 to skip v_0
 			field->mul(rWalphaW, wAtS[i+1], sk->alphaWs[i]); // w_in
 			field->mul(rY, yAtS[i+1], sk->y[i]);
@@ -1013,13 +1013,29 @@ int QAP::defineInputWireValues(EncodedEltType** bases, FieldElt** exps, int offs
 	return nonZeroCount;
 }
 
+
+// Helper function for applyCircuitCoefficients
+// result += key[k] * wire[k]
+template <typename EncodedEltType>
+void QAP::defineWitnessWireValues(EncodedEltType** bases, FieldElt** exps, int offset, WireVector& wires, EncodedEltType* key) {
+	for (long i = 0; i < (long)wires.size(); i++) {
+		assert(wires[i]->input == NULL);
+		long long pIndex = polyIndex(wires[i]);
+	
+		// a_i * Encoding[poly_i]
+		long offsetI = i + offset;
+		bases[offsetI] = &key[pIndex]; 
+		exps[offsetI]  = &wires[i]->value; 
+	}
+}
+
 // Take an evaluated circuit and compute an inner product between
 // the encoded values in the key and the coefficients of the circuit's wires
 // If midOnly is true, ignore the I/O wire values
 template <typename EncodedEltType>
 void QAP::applyCircuitCoefficients(variables_map& config, EncodedEltType* key, EncodedEltType& result, bool inclNonZeroWinputs, Timer* timer) {
 	// Setup a descriptor so we can do all of the multiplication work at once
-	size_t max_len = circuit->intermediates.size();
+	size_t max_len = circuit->intermediates.size() + circuit->witness.size();
 	if (inclNonZeroWinputs) {
 		max_len += circuit->inputs.size();
 	}
@@ -1039,6 +1055,9 @@ void QAP::applyCircuitCoefficients(variables_map& config, EncodedEltType* key, E
 	if (inclNonZeroWinputs) {
 		int numNonZero = defineInputWireValues(bases, exps, (int)offset, circuit->inputs, key);
 		offset += numNonZero;
+	} else {
+		defineWitnessWireValues(bases, exps, (int)offset, circuit->witness, key);
+		offset += circuit->witness.size();
 	}
 
 	// Do the actual mult work.  In practice, we'd separate out the precomp and work, but for now, do them together
@@ -1548,7 +1567,7 @@ Proof* QAP::doWork(PublicKey* pubKey, variables_map& config) {
 /***************** New Version of DoWork *************************/
 Proof* QAP::doWork(PublicKey* pubKey, variables_map& config) {
 	QapPublicKey* pk = (QapPublicKey*)pubKey;
-	Proof* proof = new Proof((int)circuit->inputs.size(), (int)circuit->outputs.size());
+	Proof* proof = new Proof((int)circuit->inputs.size() - (int)circuit->witness.size(), (int)circuit->outputs.size());
 
 	// Sometimes the verifier is nice and builds these for us.  Sometimes he isn't so nice.
 	if (pk->polyTree == NULL) {
@@ -1561,7 +1580,7 @@ Proof* QAP::doWork(PublicKey* pubKey, variables_map& config) {
 	}
 
 	// Copy over the inputs and outputs
-	for (int i = 0; i < (int) circuit->inputs.size(); i++) {
+	for (int i = 0; i < (int) circuit->inputs.size() - (int) circuit->witness.size(); i++) {
 		field->copy(circuit->inputs[i]->value, proof->inputs[i]);
 	}
 
@@ -1978,6 +1997,7 @@ bool QAP::verify(Keys* keys, Proof* proof, variables_map& config) {
 
 /***************** New Version of Verify *************************/
 
+// Wrapper to deal with the change of interface introduced by the cache warming step
 bool QAP::verify(Keys* keys, Proof* proof, variables_map& config) {
 	return verify(keys, proof, config, true);
 }
@@ -2038,9 +2058,10 @@ bool QAP::verify(Keys* keys, Proof* proof, variables_map& config, bool recordTim
 		delete dsum;		
 		*/
 #else // defined CHECK_NON_ZERO_IO
-		computeDVio(encoding, V, circuit->inputs.size(), circuit->inputs.size(), sk->v, proof->inputs, encodedVio);
-		computeDVio(encoding, W, circuit->inputs.size(), circuit->inputs.size(), sk->alphaWs, proof->inputs, encodedAlphaWio);
-		computeDVio(encoding, Y, circuit->inputs.size() + circuit->outputs.size(), circuit->inputs.size(), sk->y, proof->io, encodedYio); 
+		int verifiedInputSize = (int) circuit->inputs.size() - (int) circuit->witness.size();
+		computeDVio(encoding, V, verifiedInputSize, verifiedInputSize, sk->v, proof->inputs, encodedVio);
+		computeDVio(encoding, W, verifiedInputSize, verifiedInputSize, sk->alphaWs, proof->inputs, encodedAlphaWio);
+		computeDVio(encoding, Y, verifiedInputSize + circuit->outputs.size(), verifiedInputSize, sk->y, proof->io, encodedYio); 
 #endif // CHECK_NON_ZERO_IO
 
 		dVioTimer->stop();
@@ -2096,11 +2117,12 @@ bool QAP::verify(Keys* keys, Proof* proof, variables_map& config, bool recordTim
 		delete [] exponents;
 		*/
 #else // defined CHECK_NON_ZERO_IO
-		computePVio(config, encoding, circuit, V, circuit->inputs.size(),  circuit->inputs.size(), pk->Vpolys, 
+		int verifiedInputSize = (int) circuit->inputs.size() - (int) circuit->witness.size();
+		computePVio(config, encoding, circuit, V, verifiedInputSize,  verifiedInputSize, pk->Vpolys, 
 								proof->inputs, encodedVio);
-		computePVio(config, encoding, circuit, W, circuit->inputs.size(),  circuit->inputs.size(), pk->alphaWpolys, 
+		computePVio(config, encoding, circuit, W, verifiedInputSize,  verifiedInputSize, pk->alphaWpolys, 
 							  proof->inputs, encodedAlphaWio);
-		computePVio(config, encoding, circuit, Y, circuit->inputs.size() + circuit->outputs.size(), circuit->inputs.size(), pk->Ypolys, 
+		computePVio(config, encoding, circuit, Y, verifiedInputSize + circuit->outputs.size(), verifiedInputSize, pk->Ypolys, 
 								proof->io, encodedYio); 
 #endif // CHECK_NON_ZERO_IO
 

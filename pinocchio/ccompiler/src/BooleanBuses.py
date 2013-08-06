@@ -40,7 +40,7 @@ class BooleanInputBus(BooleanBus):
 
 class BooleanZero(BooleanBus):
 	def __init__(self, board):
-		Bus.__init__(self, board, MAJOR_INPUT_ONE)
+		Bus.__init__(self, board, MAJOR_LOGIC)
 
 	def do_trace_count(self): return 1
 

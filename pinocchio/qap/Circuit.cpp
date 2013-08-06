@@ -434,6 +434,10 @@ void Circuit::parse(const string filename) {
 		} else if (1 == sscanf_s(line.c_str(), "input %d", &wireId)) {
 			// Explicitly mark this wire as an input
 			wires[wireId]->trueInput = true;
+		} else if (1 == sscanf_s(line.c_str(), "nizkinput %d", &wireId)) {
+			// Explicitly mark this wire as both a regular input and a NIZK input (i.e., part of the prover's secret witness)
+			wires[wireId]->trueInput = true;
+			wires[wireId]->witnessInput = true;
 		} else if (1 == sscanf_s(line.c_str(), "output %d", &wireId)) {
 			// Explicitly mark this wire as an output
 			wires[wireId]->trueOutput = true;
@@ -455,6 +459,10 @@ void Circuit::parse(const string filename) {
 	for (int i = 0; i < wires.size(); i++) {
 		if (wires[i]->trueInput) {						// Circuit input
 			inputs.push_back(wires[i]);
+
+			if (wires[i]->witnessInput) {		// Keep track of prover's secret witness input
+				witness.push_back(wires[i]);
+			}
 		} else if (wires[i]->trueOutput) {		// Circuit output
 			outputs.push_back(wires[i]);
 			assert(wires[i]->input->isMult());	// All output wires should emerge from mult gates

@@ -22,7 +22,7 @@ class ArithmeticBus(Bus):
 
 class ArithZero(ArithmeticBus):
 	def __init__(self, board):
-		Bus.__init__(self, board, MAJOR_INPUT_ONE)
+		Bus.__init__(self, board, MAJOR_LOGIC)
 
 	def get_wire_count(self): return 1
 
@@ -33,9 +33,10 @@ class ArithZero(ArithmeticBus):
 	def do_trace(self, j):
 		return self.wire_list[0]
 
-class ArithmeticInputBus(ArithmeticBus):
-	def __init__(self, board, input_idx):
-		ArithmeticBus.__init__(self, board, MAJOR_INPUT)
+class ArithmeticInputBaseBus(ArithmeticBus):
+	def __init__(self, field_class, major, board, input_idx):
+		ArithmeticBus.__init__(self, board, major)
+		self.field_class = field_class
 		self.assert_int(input_idx)
 		self.input_idx = input_idx
 		self.set_order(input_idx)
@@ -57,11 +58,23 @@ class ArithmeticInputBus(ArithmeticBus):
 		# correctly assigned the corresponding
 		# Wire slots in the emitted arithmetic circuit.
 		assert(len(self.wire_list)==1)
-		assert(self.wire_list[0].idx == self.input_idx)
+		#assert(self.wire_list[0].idx == self.input_idx)
+			# not true for nizk_inputs, which are offset by the size
+			# of the regular inputs.
+		#print "my wire is %s, my input_idx is %s" % (self.wire_list[0].idx, self.input_idx)
+		#print "type(wire) = %s" % self.wire_list[0].__class__
 		comment = "input"
 		if (not self._used):
 			comment += " (unused)"
-		return [ FieldInput(comment, Wire(self.input_idx)) ]
+		return [ self.field_class(comment, Wire(self.wire_list[0].idx)) ]
+
+class ArithmeticInputBus(ArithmeticInputBaseBus):
+	def __init__(self, board, input_idx):
+		ArithmeticInputBaseBus.__init__(self, FieldInput, MAJOR_INPUT, board, input_idx)
+
+class ArithmeticNIZKInputBus(ArithmeticInputBaseBus):
+	def __init__(self, board, input_idx):
+		ArithmeticInputBaseBus.__init__(self, FieldNIZKInput, MAJOR_INPUT_NIZK, board, input_idx)
 
 class ArithmeticOutputBus(ArithmeticBus):
 	def __init__(self, board, bus_in, output_idx):
