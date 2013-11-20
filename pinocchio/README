@@ -31,9 +31,8 @@ and field manipulation libraries (e.g., the Pairing-Based Cryptography library
 from http://crypto.stanford.edu/pbc/).  The current release also includes a
 binary version of Pinocchio, so that you can use the same executables we did.
 
-Additional caveat: The solution file may contain references to projects that
-are still in development.  If they prove problematic for compilation, you can
-safely remove them.
+Caveat: The binaries require the --mem argument, even though the help message
+does not list it as mandatory.  
 
 CODE WALKTHROUGH
 ----------------
@@ -86,6 +85,9 @@ CODE WALKTHROUGH
   dispatches everything to QSP or QAP routines.  The test.cpp and qsp-tests.cpp 
   files contain most of the high-level logic, including numerous functionality
   tests, many of which have atrophied, so use them at your own risk.
+
+  The qap/windows directory contains a basic solution and project file, though
+  they will not compile without cryptographic library support.
 
 VERSION HISTORY
 ---------------
