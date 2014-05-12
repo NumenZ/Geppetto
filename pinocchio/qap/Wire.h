@@ -13,7 +13,7 @@ typedef std::list<Wire *> WireList;
 
 class Wire {
 public:
-	Wire(Gate* in = NULL, Gate* out = NULL) : input(in), output(out) { visited = false; Field::Zero(&value); trueInput = false; trueOutput = false; }
+	Wire(Gate* in = NULL, Gate* out = NULL) : input(in), output(out) { visited = false; Field::Zero(&value); trueInput = false; trueOutput = false; witnessInput = false; }
 	
 	Gate* input;	// NULL if this is a circuit input
 	Gate* output;	// NULL if this is a circuit output

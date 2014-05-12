@@ -95,9 +95,9 @@ void Proof::serialize(Archive* arc) {
 			 
 	// Proof only consists of the crypto elements
 	// Let someone else handle the I/O
-	arc->write(numInputs);
-	arc->write(numOutputs);
-	arc->write(io, numInputs + numOutputs);
+	//arc->write(numInputs);
+	//arc->write(numOutputs);
+	//arc->write(io, numInputs + numOutputs);
 }
 
 void Proof::deserialize(Archive* arc) {
@@ -112,11 +112,11 @@ void Proof::deserialize(Archive* arc) {
 
 	// Proof only consists of the crypto elements
 	// Let someone else handle the I/O
-	arc->read(numInputs);
-	arc->read(numOutputs);
-	inputs = new FieldElt[numInputs]; 
-	outputs = new FieldElt[numOutputs];
-	arc->read(io, numInputs + numOutputs);
+	//arc->read(numInputs);
+	//arc->read(numOutputs);
+	//inputs = new FieldElt[numInputs]; 
+	//outputs = new FieldElt[numOutputs];
+	//arc->read(io, numInputs + numOutputs);
 }
 
 #define CHECK(entry, str) \

@@ -1,4 +1,4 @@
-Pinocchio v0.4
+Pinocchio v0.5
 --------------
 
 The code included here implements the Pinocchio toolchain, as described in:
@@ -33,6 +33,13 @@ binary version of Pinocchio, so that you can use the same executables we did.
 
 Caveat: The binaries require the --mem argument, even though the help message
 does not list it as mandatory.  
+
+For more documentation, please see:
+https://vc.codeplex.com/documentation
+
+You may also find useful comments in the discussion forum:
+https://vc.codeplex.com/discussions/
+
 
 CODE WALKTHROUGH
 ----------------
@@ -91,6 +98,7 @@ CODE WALKTHROUGH
 
 VERSION HISTORY
 ---------------
+- v0.5: Bug fix for the --verify option.
 - v0.4: Minor compiler bug fixes.  Included the executable.
 - v0.3: Added proper support for equality testing
 - v0.2: Included some additional files and fixed a few verification-related bugs.

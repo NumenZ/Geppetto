@@ -40,8 +40,8 @@ using namespace boost::program_options;
 
 // Used in everything but the perf tests
 #define N 3
-#define NUM_TESTS 1000
-#define MAX_DEGREE 500
+#define NUM_TESTS 100
+#define MAX_DEGREE 50
 
 
 /****************************************************************************
@@ -2284,15 +2284,36 @@ void runVerify(variables_map& config) {
 	delete arc;
 	delete file;
 
-	WireValues wireValues;
-	parseWireFile(circuit.field, config["output"].as<string>(), wireValues);		
+  // Make some space for the IO
+  proof.io = new FieldElt[circuit.inputs.size() + circuit.outputs.size()];
+  proof.inputs = proof.io; 
+  proof.outputs = proof.io + circuit.inputs.size();
+
+	WireValues wireValuesIn;
+	parseWireFile(circuit.field, config["input"].as<string>(), wireValuesIn);		
+
+	// Apply the inputs
+	for (WireVector::iterator iter = circuit.inputs.begin();
+	     iter != circuit.inputs.end();
+			 iter++) {
+		WireValues::iterator lookup = wireValuesIn.find((*iter)->id);
+		assert(lookup != wireValuesIn.end());	// If this triggers, we failed to find a value for an input wire!
+		circuit.field->copy(lookup->second.elt, (*iter)->value);
+	}
+  
+	for (int i = 0; i < circuit.inputs.size(); i++) {
+		field->copy(circuit.inputs[i]->value, proof.inputs[i]);
+	}
+
+	WireValues wireValuesOut;
+	parseWireFile(circuit.field, config["output"].as<string>(), wireValuesOut);		
 
 	// Apply the outputs
 	for (WireVector::iterator iter = circuit.outputs.begin();
 	     iter != circuit.outputs.end();
 			 iter++) {
-		WireValues::iterator lookup = wireValues.find((*iter)->id);
-		assert(lookup != wireValues.end());	// If this triggers, we failed to find a value for an input wire!
+		WireValues::iterator lookup = wireValuesOut.find((*iter)->id);
+		assert(lookup != wireValuesOut.end());	// If this triggers, we failed to find a value for an output wire!
 		circuit.field->copy(lookup->second.elt, (*iter)->value);
 	}
 
@@ -2313,10 +2334,8 @@ void runVerify(variables_map& config) {
 
 	if (success) {
 		printf("Verification passed!\n");
-		exit(42);
 	} else {
 		printf("Verification failed!\n");
-		exit(666);
 	}
 }
 
@@ -2333,11 +2352,11 @@ void runQapTests(variables_map& config) {
 	} else if (config.count("file")) {
 		runPerfTest(config);	
 	}	else if (config.count("test")) {
-		//runPolyCorrectnessTest();
+		runPolyCorrectnessTest();
 		//randomPolyEvalInterpTest(50, config["trials"].as<int>());
 		//runMultiExpTest(config["trials"].as<int>());
 		//runSimpleTests(config);
-		runVerifyTest(config);
+		//runVerifyTest(config);
 		//IOtest(config);
 	} else if (config.count("matrix")) {
 		runMatrixPerfTest(config);

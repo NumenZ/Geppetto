@@ -1510,7 +1510,8 @@ Encoding::Encoding() {
 	pbigctx = &this->BignumCtx;
 	memset(this->pbigctx, 0, sizeof(bigctx_t));
 
-	digit_t prime = 49999;
+	digit_t prime = 4294967291;
+	//digit_t prime = 49999;
 	//digit_t prime = 1223;
 	//digit_t prime = 101;
 	//digit_t prime = 11;
