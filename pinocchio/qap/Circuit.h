@@ -30,7 +30,7 @@ public:
 	// Keep all of these values explicitly, 
 	// since these are the ones the QAP cares about
 	WireVector inputs;			// Input values
-	WireVector witness;			// Prover's secret witness inputs
+	WireVector witness;			// Prover's secret witness inputs (a subset of the inputs vector)
 	WireVector intermediates;	// Value of the output of each multiplication gate in the interior of the circuit
 	WireVector outputs;			// Value of the circuit's actual output wires
 	WireVector wires;			// Holds all of the wires
@@ -43,6 +43,8 @@ public:
 	// Based on the currently configured inputs, derive an appropriate set of outputs
 	// Set optimized to true to do a direct (rather than gate-by-gate) evaluation
 	void eval(bool optimized);	
+  
+  int numTrueInputs();  // Number of non-witness inputs
 
 	Field* field;  // Field this circuit computes over
 protected:

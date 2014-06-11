@@ -53,6 +53,9 @@ void Circuit::directEval() {
 	assert(0);
 }
 
+int Circuit::numTrueInputs() {
+  return (int) (inputs.size() - witness.size());
+}
 
 void Circuit::eval(bool optimized) {
 	if (optimized) {

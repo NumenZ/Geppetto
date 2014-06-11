@@ -688,9 +688,9 @@ void assignRandom(Field* field, WireVector& vector, int bits = -1) {
 }
 
 // Set the last element to 1
-void assignConstOne(Field* field, WireVector& vector) {
+void assignConstOne(Field* field, WireVector& vector, int numTrueInputs) {
 	FieldElt* one = field->newOne();
-	field->copy(*one, vector[vector.size()-1]->value);	
+	field->copy(*one, vector[numTrueInputs-1]->value);	
 	delete [] one;
 }
 
@@ -710,8 +710,8 @@ bool equal(Field* field, WireVector& wiresA, WireVector& wiresB) {
 
 bool testEval(Field* field, CircuitMatrixMultiply& stdMatMulCircuit, CircuitMatrixMultiply& qapMatMulCircuitNadder, CircuitMatrixMultiply& qapMatxMulCircuit2adder) {
 	// Make sure the constant 1 input is really set to one
-	assignConstOne(field, qapMatMulCircuitNadder.inputs);
-	assignConstOne(field, qapMatxMulCircuit2adder.inputs);
+	assignConstOne(field, qapMatMulCircuitNadder.inputs, qapMatMulCircuitNadder.numTrueInputs());
+	assignConstOne(field, qapMatxMulCircuit2adder.inputs, qapMatxMulCircuit2adder.numTrueInputs());
 
 	stdMatMulCircuit.eval(false);
 	qapMatMulCircuitNadder.eval(false);
@@ -980,7 +980,7 @@ bool runMatrixProofTests(CircuitMatrixMultiply& circuit, Encoding* encoding, con
 	Field* field = encoding->getSrcField();
 	assignRandom(field, circuit.inputs);
 	//assignAllOneInputs(field, circuit.inputs);
-	assignConstOne(field, circuit.inputs); // Make sure the final input is a 1
+	assignConstOne(field, circuit.inputs, circuit.numTrueInputs()); // Make sure the final input is a 1
 	circuit.eval(true);
 
 	// Try constructing a QAP
@@ -1405,7 +1405,7 @@ void runMatrixPerfTest(variables_map& config) {
 		printf("Assigning full %d-bit input values\n", sizeof(FieldElt)*8);
 		assignRandom(field, qapMatMulCircuitNadder.inputs); 
 	}
-	assignConstOne(field, qapMatMulCircuitNadder.inputs); // Make sure the QAP's final input is a 1
+	assignConstOne(field, qapMatMulCircuitNadder.inputs, qapMatMulCircuitNadder.numTrueInputs()); // Make sure the QAP's final input is a 1
 
 	// Assign both circuits the same random inputs
 	for (int i = 0; i < stdMatMulCircuit.inputs.size(); i++) {
@@ -1563,12 +1563,12 @@ void runPerfTest(variables_map& config) {
 	if (config.count("bits")) {  
 		printf("Assigning random %d-bit input values\n", config["bits"].as<int>());
 		assignRandom(field, circuit.inputs, config["bits"].as<int>());
-		assignConstOne(field, circuit.inputs); // Make sure the QAP's final input is a 1
+		assignConstOne(field, circuit.inputs, circuit.numTrueInputs()); // Make sure the QAP's final input is a 1
 		writeInput(config, circuit);	// Save the random input, in case we need it
 	} else if (!parseAndAssignInput(config, circuit, wireValues)) { // Parsing the input file failed
 		printf("Assigning full %d-bit input values\n", sizeof(FieldElt)*8);
 		assignRandom(field, circuit.inputs); 
-		assignConstOne(field, circuit.inputs); // Make sure the QAP's final input is a 1
+		assignConstOne(field, circuit.inputs, circuit.numTrueInputs()); // Make sure the QAP's final input is a 1
 		writeInput(config, circuit);  // Save the random input, in case we need it
 	}
 
@@ -1761,7 +1761,7 @@ void runNetworkTest(variables_map& config) {
 	if (!parseAndAssignInput(config, circuit, wireValues)) {
 		// Assign random inputs
 		assignRandom(field, circuit.inputs);	
-		assignConstOne(field, circuit.inputs); // Make sure the QAP's final input is a 1
+		assignConstOne(field, circuit.inputs, circuit.numTrueInputs()); // Make sure the QAP's final input is a 1
 	}
 
 	circuit.eval(false);
@@ -1866,7 +1866,7 @@ void runVerifyTest(variables_map& config) {
 		printf("Assigning full %d-bit input values\n", sizeof(FieldElt)*8);
 		assignRandom(field, qapMatMulCircuitNadder.inputs); 
 	}
-	assignConstOne(field, qapMatMulCircuitNadder.inputs); // Make sure the QAP's final input is a 1
+	assignConstOne(field, qapMatMulCircuitNadder.inputs, qapMatMulCircuitNadder.numTrueInputs()); // Make sure the QAP's final input is a 1
 
 	// Time the basic circuit evaluation
 	TIME(qapMatMulCircuitNadder.eval(false), "QAPEval", "Total");
