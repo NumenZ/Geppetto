@@ -1,4 +1,4 @@
-Pinocchio v0.5.1
+Pinocchio v0.5.2
 ----------------
 
 The code included here implements the Pinocchio toolchain, as described in:
@@ -98,6 +98,7 @@ CODE WALKTHROUGH
 
 VERSION HISTORY
 ---------------
+- v0.5.2: Bug fix for the network client.  
 - v0.5.1: Bug fix for the constant 1 input in NIZK instances.  Reported by Ahmed Kosba.
 - v0.5:   Bug fix for the --verify option.  Reported by azerty123 via vc.codeplex.com
 - v0.4:   Minor compiler bug fixes.  Included the executable.

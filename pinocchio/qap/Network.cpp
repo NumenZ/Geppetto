@@ -122,7 +122,7 @@ void Network::startServer() {
 	*/
 }
 
-void Network::startClient() {
+void Network::startClient(const string server_ip) {
     Socket = INVALID_SOCKET;
     struct addrinfo *result = NULL,
                     *ptr = NULL,
@@ -141,9 +141,8 @@ void Network::startClient() {
     hints.ai_socktype = SOCK_STREAM;
     hints.ai_protocol = IPPROTO_TCP;
 
-    // Resolve the server address and port
-    //iResult = getaddrinfo("127.0.0.1", DEFAULT_PORT, &hints, &result);
-		iResult = getaddrinfo("10.198.233.150", DEFAULT_PORT, &hints, &result);
+    // Resolve the server address and port    
+		iResult = getaddrinfo(server_ip.c_str(), DEFAULT_PORT, &hints, &result);
     if ( iResult != 0 ) {
         printf("getaddrinfo failed with error: %d\n", iResult);
         WSACleanup();

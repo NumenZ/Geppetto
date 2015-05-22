@@ -1775,7 +1775,9 @@ void runNetworkTest(variables_map& config) {
 
 	if (config.count("client")) {
 		Network net;
-		net.startClient();
+    Proof p(circuit.inputs.size(), circuit.outputs.size());
+
+		net.startClient(config["client"].as<string>());
 
 		keys = qap.genKeys(config);
 
@@ -1783,17 +1785,15 @@ void runNetworkTest(variables_map& config) {
 		keys->pk->serialize(&arc);
 
 
-		// Send inputs
+		// Send inputs    
 		for (int i = 0; i < (int)circuit.inputs.size(); i++) {
 			arc.write(circuit.inputs[i]->value);
+      field->copy(circuit.inputs[i]->value, p.inputs[i]);
 		}
 
-
-		Proof p;
 		p.deserialize(&arc);
 
-		// Get the inputs
-		p.outputs = new FieldElt[circuit.outputs.size()];
+		// Get the outputs		
 		arc.read(p.outputs, (int) circuit.outputs.size());
 
 		bool success = qap.verify(keys, &p, config);
