@@ -56,6 +56,14 @@ Encoding::Encoding() {
 
 	numMults = 0;
 	numSquares = 0;
+
+	this->num_L_addsub = 0;
+  this->num_L_double = 0;
+  this->num_L_constmul = 0;
+	this->num_R_addsub = 0;
+  this->num_R_double = 0;
+  this->num_R_constmul = 0;
+  this->num_pair = 0;
 }
 
 Encoding::~Encoding() {
@@ -67,6 +75,25 @@ Encoding::~Encoding() {
 
 	deletePrecomputePowers();
 	Poly::Cleanup();
+}
+
+void Encoding::reset_stats()
+{
+	this->num_L_addsub = 0;
+  this->num_L_double = 0;
+  this->num_L_constmul = 0;
+	this->num_R_addsub = 0;
+  this->num_R_double = 0;
+  this->num_R_constmul = 0;
+  this->num_pair = 0;  
+}
+
+void Encoding::print_stats()
+{
+  printf("addsub: %d (%d L, %d R)\n", this->num_L_addsub + this->num_R_addsub, this->num_L_addsub, this->num_R_addsub);
+	printf("double: %d (%d L, %d R)\n", this->num_L_double + this->num_R_double, this->num_L_double, this->num_R_double);
+  printf("constmul: %d (%d L, %d R)\n", this->num_L_constmul + this->num_R_constmul, this->num_L_constmul, this->num_R_constmul);
+  printf("Pair: %d\n", this->num_pair);
 }
 
 void Encoding::deletePrecomputePowers() {
@@ -891,6 +918,7 @@ void Encoding::doubleIt(LEncodedElt& a, LEncodedElt& b) {
 	BOOL OK = ecprojective_double(a, b, &bn.BaseCurve, arithTempSpace, PBIGCTX_PASS);
 	assert(OK);
 	testOnCurve(b);
+	this->num_L_double++;
 }
 
 void Encoding::doubleIt(REncodedElt& a, REncodedElt& b) {
@@ -899,6 +927,7 @@ void Encoding::doubleIt(REncodedElt& a, REncodedElt& b) {
 	BOOL OK = ecprojective_double(a, b, &bn.TwistCurve, arithTempSpace, PBIGCTX_PASS);
 	assert(OK);
 	testOnCurve(b);
+	this->num_R_double++;
 }
 
 void Encoding::testOnCurve(LEncodedElt& elt) {
@@ -932,6 +961,18 @@ void Encoding::testOnCurve(REncodedEltAff& elt) {
 	BOOL OK = ecaffine_on_curve(elt, &bn.TwistCurve, "I'm on a curve", temp, PBIGCTX_PASS);
 	assert(OK);
 #endif
+}
+
+void Encoding::print(LEncodedElt& elt) {
+	for (int i = 0; i < sizeof(LEncodedElt)/sizeof(digit_t); i++) {
+		printf("%llx ", elt[i]);
+	}
+}
+
+void Encoding::print(REncodedElt& elt) {
+	for (int i = 0; i < sizeof(REncodedElt)/sizeof(digit_t); i++) {
+		printf("%llx ", elt[i]);
+	}
 }
 
 
@@ -1088,6 +1129,7 @@ void Encoding::mul(LEncodedElt& g, FieldElt& c, LEncodedElt& r) {
 	affinize(r, rAff);	
 	assert(ecaffine_equal(rAff, slowResult, &bn.BaseCurve, PBIGCTX_PASS));
 #endif
+	this->num_L_constmul++;
 }
 
 // Multiplies the value encoded in g by the constant c.  Result goes in r.
@@ -1111,6 +1153,7 @@ void Encoding::mul(REncodedElt& g, FieldElt& c, REncodedElt& r) {
 	affinize(r, rAff);
 	assert(ecaffine_equal(rAff, slowResult, &bn.TwistCurve, PBIGCTX_PASS));
 #endif
+	this->num_R_constmul++;
 }
 
 // Computes r <- g_{a_i}^{b_i} for 0 <= i < len
@@ -1216,6 +1259,7 @@ void Encoding::add(LEncodedElt& a, LEncodedElt& b, LEncodedElt& r) {
 
 	assert(ecaffine_equal(rAff, affResult, &bn.BaseCurve, PBIGCTX_PASS));
 #endif
+	this->num_L_addsub++;
 }
 
 // Adds two encoded elements.  Result goes in r.
@@ -1243,6 +1287,7 @@ void Encoding::add(REncodedElt& a, REncodedElt& b, REncodedElt& r) {
 	assert(OK);
 	assert(ecaffine_equal(rAff, affResult, &bn.TwistCurve, PBIGCTX_PASS));
 #endif
+	this->num_R_addsub++;
 }
 
 // Subtracts two encoded elements.  Result goes in r.
@@ -1269,6 +1314,7 @@ void Encoding::sub(LEncodedElt& a, LEncodedElt& b, LEncodedElt& r) {
 	assert(OK);
 	assert(ecaffine_equal(rAff, affResult, &bn.BaseCurve, PBIGCTX_PASS));
 #endif
+	this->num_L_addsub++;
 }
 
 // Subtracts two encoded elements.  Result goes in r.
@@ -1295,6 +1341,7 @@ void Encoding::sub(REncodedElt& a, REncodedElt& b, REncodedElt& r) {
 	assert(OK);
 	assert(ecaffine_equal(rAff, affResult, &bn.TwistCurve, PBIGCTX_PASS));
 #endif
+	this->num_R_addsub++;
 }
 
 bool isAllZero(digit_t* value, int sizeInBytes) {
@@ -1385,6 +1432,7 @@ void Encoding::pair(LEncodedElt& L, REncodedElt& R, EncodedProduct& result) {
 		OK = OK && bn_o_ate_finalexp(result, &bn, result, PBIGCTX_PASS);
 		assert(OK);
 	}
+	this->num_pair++;
 }
 
 void Encoding::pairAffine(LEncodedEltAff& L, REncodedEltAff& R, EncodedProduct& result) {
@@ -1403,6 +1451,7 @@ void Encoding::pairAffine(LEncodedEltAff& L, REncodedEltAff& R, EncodedProduct& 
 		OK = OK && bn_o_ate_finalexp(result, &bn, result, PBIGCTX_PASS);
 		assert(OK);
 	}
+	this->num_pair++;
 }
 
 // Checks whether the plaintexts inside the encodings obey:
@@ -1572,6 +1621,9 @@ void Encoding::doubleIt(EncodedElt& a, EncodedElt& b) {
 	mul(a, two, b);
 }
 
+void Encoding::print(EncodedElt& elt) {
+	this->srcField->print(elt);
+}
 
 void Encoding::encode(FieldElt& in, EncodedElt& out) {
 	srcField->copy(in, out);

@@ -88,12 +88,42 @@ QAP::QAP(Circuit* circuit, Encoding* encoding, bool cachedBuild) {
 
 //#ifdef _DEBUG
 	int bothNonZero = 0;
+	int nonzero_v = 0;
+	int nonzero_w = 0;
+	int nonzero_y = 0;
 	for (int i = 0; i < this->size+1; i++) {
 		if (this->V[i].size() > 0 && this->W[i].size() > 0) {
 			bothNonZero++;
 		}
+		if (this->V[i].size() > 0) { nonzero_v++; }
+		if (this->W[i].size() > 0) { nonzero_w++; }
+		if (this->Y[i].size() > 0) { nonzero_y++; }
 	}
 	printf("%d of %d polynomials (%0.2f%%) are non-zero at both V and W\n", bothNonZero, this->size+1, 100*bothNonZero/(float)(this->size+1));
+	printf("Total non-zero polynomials: V=%d, W=%d, Y=%d\n", nonzero_v, nonzero_w, nonzero_y);
+
+	nonzero_v = 0;
+	nonzero_w = 0;
+	nonzero_y = 0;
+
+	// Check input specifically
+	for (int i = 0; i < circuit->inputs.size(); i++) {
+		uint64_t index = polyIndex(circuit->inputs[i]);
+		if (this->V[index].size() > 0) { nonzero_v++; }
+		if (this->W[index].size() > 0) { nonzero_w++; }
+		if (this->Y[index].size() > 0) { nonzero_y++; }
+	}
+
+	// Check output specifically
+	for (int i = 0; i < circuit->outputs.size(); i++) {
+		int index = polyIndex((GateMul2*)circuit->outputs[i]->input);
+		if (this->V[index].size() > 0) { nonzero_v++; }
+		if (this->W[index].size() > 0) { nonzero_w++; }
+		if (this->Y[index].size() > 0) { nonzero_y++; }
+	}
+
+	printf("IO non-zero polynomials: V=%d, W=%d, Y=%d\n", nonzero_v, nonzero_w, nonzero_y);
+
 //#endif
 }
 
@@ -1629,6 +1659,16 @@ Proof* QAP::doWork(PublicKey* pubKey, variables_map& config) {
 	///////////  If we're doing NIZK, rerandomize h(x) before we apply it ///////////////////////
 	Timer* nizkTimer = NULL;
 	FieldElt deltaV, deltaW, deltaVW, deltaY;
+
+	// Use to sync the one-pass mode with the dowork mode
+	//field->assignRandomElt(&deltaV);
+	//field->assignRandomElt(&deltaV);
+	//field->assignRandomElt(&deltaV);
+	//field->assignRandomElt(&deltaV);
+	//field->assignRandomElt(&deltaV);
+	//field->assignRandomElt(&deltaV);
+	//field->assignRandomElt(&deltaV);
+	//field->assignRandomElt(&deltaV);
 	
 	if (config.count("nizk")) {	
 		nizkTimer = timers.newTimer("NIZKcalc", "DoWork");
@@ -2125,7 +2165,6 @@ bool QAP::verify(Keys* keys, Proof* proof, variables_map& config, bool recordTim
 		computePVio(config, encoding, circuit, Y, verifiedInputSize + circuit->outputs.size(), verifiedInputSize, pk->Ypolys, 
 								proof->io, encodedYio); 
 #endif // CHECK_NON_ZERO_IO
-
 		pVioTimer->stop();
 	}		
 	ioTimer->stop();

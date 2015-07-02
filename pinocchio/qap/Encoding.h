@@ -149,6 +149,8 @@ public:
 	virtual void testOnCurve(LEncodedEltAff& elt);
 	virtual void testOnCurve(REncodedEltAff& elt);
 
+	virtual void print(LEncodedElt& elt);
+	virtual void print(REncodedElt& elt);
 
 	// Max memory to use.  If precompFree, then fill maxMem.  Otherwise, assume we throw everything away, so precomp needs to pay for itself in one instance
 	void allocatePreCalcMem(long long numExps, int maxMemGb, bool precompFree); // Helper for precomputePowersFast
@@ -167,6 +169,9 @@ public:
 
 	void resetCount();
 	void printCount();
+
+	void print_stats();
+	void reset_stats();
 
 //protected:
 
@@ -196,6 +201,16 @@ public:
 
 	int numMults;
 	int numSquares;
+
+	int num_L_addsub;
+  int num_L_double;
+  int num_L_constmul;
+
+	int num_R_addsub;
+  int num_R_double;
+  int num_R_constmul;
+  int num_pair;
+
 };
 
 #else	// #define DEBUG_ENCODING
@@ -275,8 +290,13 @@ public:
 
 	virtual void doubleIt(EncodedElt& a, EncodedElt& b);
 
+	virtual void print(EncodedElt& elt);
+
 	void resetCount();
 	void printCount();
+
+	void print_stats() {}
+	void reset_stats() {}
 
 	mp_modulus_t* p;
 	

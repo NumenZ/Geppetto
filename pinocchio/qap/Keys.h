@@ -229,6 +229,7 @@ protected:
 	virtual void initialize(int numPowers, int numPolys, bool isNIZK, bool designatedVerifier);
 protected:
 	bool isEqual(Encoding* encoding, PublicKey* other);
+	virtual void printCommon(Encoding* encoding);
 
 private:
 	void init();
@@ -259,7 +260,7 @@ public:
 	void cleanup();
 
 	virtual void serialize(Archive* arc);
-	virtual void deserialize(Archive* arc);
+	virtual void deserialize(Archive* arc);	
 };
 
 class Keys {
@@ -299,6 +300,7 @@ public:
 	virtual int size();
 	virtual void serialize(Archive* arc);
 	virtual void deserialize(Archive* arc);
+	virtual void print(Encoding* encoding);
 	bool equals(Encoding* encoding, QapPublicKey* other);
 
 	virtual void initialize(int numPowers, int numPolys);

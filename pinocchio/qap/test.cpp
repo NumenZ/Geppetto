@@ -27,6 +27,8 @@
 using namespace std;
 using namespace boost::program_options;
 
+extern void runPaillierTests(variables_map& config);
+
 //#ifdef __cplusplus
 //extern "C" {
 //#endif
@@ -1437,18 +1439,21 @@ void runMatrixPerfTest(variables_map& config) {
 
 	Keys* keys = NULL;
 	TIME(keys = qap.genKeys(config), "KeyGen", "Total");
-
+	printf("KeyStats:\n");
+	encoding->print_stats(); encoding->reset_stats();
 	Proof* p = NULL;
 	TIME(p = qap.doWork(keys->pk, config), "DoWork", "Total");
-
+	printf("Work:\n");
+	encoding->print_stats(); encoding->reset_stats();
 	printf("Work complete\n");  fflush(stdout);
 	// Warm Cache
 	qap.verify(keys, p, config, false);
 
 	bool success;
 	TIME(success = qap.verify(keys, p, config), "Verify", "Total");
-
 	printf("Verification complete\n");  fflush(stdout);
+	printf("Verify:\n");
+	encoding->print_stats(); encoding->reset_stats();
 
 	assert(success);
 	totalTimer->stop();
@@ -1621,6 +1626,7 @@ void runPerfTest(variables_map& config) {
 
 	Keys* keys = NULL;
 	TIME(keys = qap.genKeys(config), "KeyGen", "Total");
+	//((QapPublicKey*)keys->pk)->print(encoding);
 
 	Timer* fileTimer = NULL;
 	if (config.count("keys")) {
@@ -1670,6 +1676,14 @@ void runPerfTest(variables_map& config) {
 
 	Proof* p = NULL;
 	TIME(p = qap.doWork(keys->pk, config), "DoWork", "Total");
+	//encoding->print(p->V);  printf("\n");
+	//encoding->print(p->W);  printf("\n");
+	//encoding->print(p->Y);  printf("\n");
+	//encoding->print(p->alphaV);  printf("\n");
+	//encoding->print(p->alphaW);  printf("\n");
+	//encoding->print(p->alphaY);  printf("\n");
+	//encoding->print(p->H);	  printf("\n");
+	//encoding->print(p->beta);	printf("\n");
 
 	if (config.count("keys")) {
 		fileTimer->start();
@@ -1703,7 +1717,7 @@ void runPerfTest(variables_map& config) {
 
 	// Warm Cache
 	qap.verify(keys, p, config, false);
-
+	
 	bool success;
 	TIME(success = qap.verify(keys, p, config), "Verify", "Total");
 	assert(success);
@@ -1775,7 +1789,7 @@ void runNetworkTest(variables_map& config) {
 
 	if (config.count("client")) {
 		Network net;
-    Proof p(circuit.inputs.size(), circuit.outputs.size());
+    Proof p((int)circuit.inputs.size(), (int)circuit.outputs.size());
 
 		net.startClient(config["client"].as<string>());
 
@@ -1976,11 +1990,11 @@ void runMicroTests(variables_map& config) {
 		TIME(encoding->precomputePowersFast(numTrials*2, config["mem"].as<int>(), false), "PrecomputePwrFast", "Total");	// x2 for L and R
 
 		TIMEREP(encoding->encodeSlowest(field1[i], lencodings[i]), numTrials, "EncodeSlowestL", "Total");
-		//TIMEREP(encoding->encodeSlow(field1[i], lencodings2[i]), numTrials, "EncodeSlowL", "Total");
+		TIMEREP(encoding->encodeSlow(field1[i], lencodings2[i]), numTrials, "EncodeSlowL", "Total");
 		TIMEREP(encoding->encode(field1[i], lencodings[i]), numTrials, "EncodeFastL", "Total");
 
 		TIMEREP(encoding->encodeSlowest(field1[i], rencodings[i]), numTrials, "EncodeSlowestR", "Total");
-		//TIMEREP(encoding->encodeSlow(field1[i], rencodings2[i]), numTrials, "EncodeSlowR", "Total");
+		TIMEREP(encoding->encodeSlow(field1[i], rencodings2[i]), numTrials, "EncodeSlowR", "Total");
 		TIMEREP(encoding->encode(field1[i], rencodings[i]), numTrials, "EncodeFastR", "Total");
 
 		printf("Finished encoding\n");  fflush(stdout);
@@ -2187,6 +2201,7 @@ void runGenKeys(variables_map& config) {
 
 	QAP qap(&circuit, encoding, config.count("pcache") > 0);	
 	Keys* keys = qap.genKeys(config);
+	//((QapPublicKey*)keys->pk)->print(encoding);
 
 	FileArchiver* file = new FileArchiver(config["keys"].as<string>() + ".pub", FileArchiver::Write);
 	Archive* arc = new Archive(file, encoding);
@@ -2231,6 +2246,7 @@ void runDoWork(variables_map& config) {
 	pk.deserialize(arc);		
 	delete arc;
 	delete file;
+	//pk.print(encoding);
 
 	// Do the work
 	Proof* p = NULL;
@@ -2252,6 +2268,16 @@ void runDoWork(variables_map& config) {
 
 	// Does it pass after we serialize?
 	//success = qap.verify(keys, p, config);
+
+	//printf("Proof:\n");
+	//encoding->print(p->V);  printf("\n");
+	//encoding->print(p->W);  printf("\n");
+	//encoding->print(p->Y);  printf("\n");
+	//encoding->print(p->alphaV);  printf("\n");
+	//encoding->print(p->alphaW);  printf("\n");
+	//encoding->print(p->alphaY);  printf("\n");
+	//encoding->print(p->H);	  printf("\n");
+	//encoding->print(p->beta);	printf("\n");
 
 	delete arc;
 	delete file;
@@ -2275,6 +2301,7 @@ void runVerify(variables_map& config) {
 	pk.deserialize(arc);		
 	delete arc;
 	delete file;
+	//pk.print(encoding);
 	
 	// Get the proof
 	file = new FileArchiver(config["keys"].as<string>() + ".proof", FileArchiver::Read);
@@ -2284,10 +2311,20 @@ void runVerify(variables_map& config) {
 	delete arc;
 	delete file;
 
+	//printf("Proof:\n");
+	//encoding->print(proof.V);  printf("\n");
+	//encoding->print(proof.W);  printf("\n");
+	//encoding->print(proof.Y);  printf("\n");
+	//encoding->print(proof.alphaV);  printf("\n");
+	//encoding->print(proof.alphaW);  printf("\n");
+	//encoding->print(proof.alphaY);  printf("\n");
+	//encoding->print(proof.H);	  printf("\n");
+	//encoding->print(proof.beta);	printf("\n");
+
   // Make some space for the IO
-  proof.io = new FieldElt[circuit.inputs.size() + circuit.outputs.size()];
+  proof.io = new FieldElt[circuit.numTrueInputs() + circuit.outputs.size()];
   proof.inputs = proof.io; 
-  proof.outputs = proof.io + circuit.inputs.size();
+  proof.outputs = proof.io + circuit.numTrueInputs();
 
 	WireValues wireValuesIn;
 	parseWireFile(circuit.field, config["input"].as<string>(), wireValuesIn);		
@@ -2301,7 +2338,7 @@ void runVerify(variables_map& config) {
 		circuit.field->copy(lookup->second.elt, (*iter)->value);
 	}
   
-	for (int i = 0; i < circuit.inputs.size(); i++) {
+	for (int i = 0; i < circuit.numTrueInputs(); i++) {
 		field->copy(circuit.inputs[i]->value, proof.inputs[i]);
 	}
 
@@ -2357,6 +2394,7 @@ void runQapTests(variables_map& config) {
 		//runMultiExpTest(config["trials"].as<int>());
 		//runSimpleTests(config);
 		//runVerifyTest(config);
+		runPaillierTests(config);
 		//IOtest(config);
 	} else if (config.count("matrix")) {
 		runMatrixPerfTest(config);

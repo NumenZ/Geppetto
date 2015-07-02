@@ -513,16 +513,28 @@ void PublicKey::initialize(int numPowers, int numPolys, bool isNIZK, bool design
 		betaGammaR = (REncodedElt*) new REncodedElt;
 	
 		RtAtS = (REncodedElt*) new REncodedElt;
+
+		if (isNIZK) {
+			LVtAtS = (LEncodedElt*) new LEncodedElt;
+			RWtAtS = (REncodedElt*) new REncodedElt;
+			LalphaVTatS = (LEncodedElt*) new LEncodedElt;
+			LalphaWTatS = (LEncodedElt*) new LEncodedElt;
+			LbetaVTatS = (LEncodedElt*) new LEncodedElt;
+			LbetaWTatS = (LEncodedElt*) new LEncodedElt;
+		} 
 	}
 	// Still need this, even in DV case, due to twist curve
 	alphaW = (LEncodedElt*) new LEncodedElt;
 
-	LVtAtS = NULL;
-	RWtAtS = NULL;
-	LalphaVTatS = NULL;
-	LalphaWTatS = NULL;
-	LbetaVTatS = NULL;
-	LbetaWTatS = NULL;
+	// Provide a basic default, to catch problems sooner
+	if (designatedVerifier || !isNIZK) {
+		LVtAtS = NULL;
+		RWtAtS = NULL;
+		LalphaVTatS = NULL;
+		LalphaWTatS = NULL;
+		LbetaVTatS = NULL;
+		LbetaWTatS = NULL;
+	}
 
 	polyTree = NULL;
 	denominators = NULL;
@@ -663,6 +675,62 @@ void PublicKey::deserialize(Archive* arc) {
 	
 	// Still need this, even in DV case, due to twist curve
 	arc->read(*alphaW);
+}
+
+void PublicKey::printCommon(Encoding* encoding) {
+	// Powers of s^i
+	printf("Public key with %d powers, %d numPolys\n", numPowers, numPolys);
+	for (int i = 0; i < numPowers; i++) {
+		printf("\t powers[%d] = ", i);
+		encoding->print(powers[i]);
+		printf("\n");
+	}	
+
+	for (int i = 0; i < numPolys; i++) {
+		printf("\t Vpolys[%d] = ", i);
+		encoding->print(Vpolys[i]);
+		printf("\n");
+	}	
+	for (int i = 0; i < numPolys; i++) {
+		printf("\t Wpolys[%d] = ", i);
+		encoding->print(Wpolys[i]);
+		printf("\n");
+	}	
+	for (int i = 0; i < numPolys; i++) {
+		printf("\t alphaVpolys[%d] = ", i);
+		encoding->print(alphaVpolys[i]);
+		printf("\n");
+	}	
+	for (int i = 0; i < numPolys; i++) {
+		printf("\t alphaWpolys[%d] = ", i);
+		encoding->print(alphaWpolys[i]);
+		printf("\n");
+	}
+	for (int i = 0; i < numPolys; i++) {
+		printf("\t betaVWYpolys[%d] = ", i);
+		encoding->print(betaVWYpolys[i]);
+		printf("\n");
+	}
+
+	// KEA values
+	printf("\tKEA values:\n\t");
+	encoding->print(*alphaV);				printf("\n\t");
+	encoding->print(*alphaV);				printf("\n\t");
+	encoding->print(*alphaW);				printf("\n\t");
+	encoding->print(*gammaR);				printf("\n\t");
+	encoding->print(*betaGammaL);		printf("\n\t");
+	encoding->print(*betaGammaR);		printf("\n\t");
+	encoding->print(*RtAtS);			  printf("\n\t");
+
+	// Some extra values needed for NIZK	
+	if (this->isNIZK) {
+		encoding->print(*LVtAtS);				printf("\n\t");
+		encoding->print(*RWtAtS);				printf("\n\t");
+		encoding->print(*LalphaVTatS);	printf("\n\t");
+		encoding->print(*LalphaWTatS);	printf("\n\t");
+		encoding->print(*LbetaVTatS);		printf("\n\t");
+		encoding->print(*LbetaWTatS);		printf("\n\t");
+	}
 }
 
 #define CHECK(entry, str) \
@@ -864,9 +932,15 @@ void QapPublicKey::initialize(int numPowers, int numPolys) {
 		alphaY = (REncodedElt*) new REncodedElt;
 	}
 
-	LYtAtS = NULL;
-	LalphaYTatS = NULL;
-	LbetaYTatS = NULL;
+	if (isNIZK) {
+		LYtAtS = (LEncodedElt*) new LEncodedElt;
+		LalphaYTatS = (LEncodedElt*) new LEncodedElt;
+		LbetaYTatS = (LEncodedElt*) new LEncodedElt;
+	} else {
+		LYtAtS = NULL;
+		LalphaYTatS = NULL;
+		LbetaYTatS = NULL;
+	}
 }
 
 QapPublicKey::~QapPublicKey() {
@@ -931,6 +1005,30 @@ void QapPublicKey::deserialize(Archive* arc) {
 		arc->read(*LYtAtS);
 		arc->read(*LalphaYTatS);
 		arc->read(*LbetaYTatS);
+	}
+}
+
+void QapPublicKey::print(Encoding* encoding) {
+	this->printCommon(encoding);
+	for (int i = 0; i < numPolys; i++) {
+		printf("\t Ypolys[%d] = ", i);
+		encoding->print(Ypolys[i]);
+		printf("\n");
+	}
+	for (int i = 0; i < numPolys; i++) {
+		printf("\t alphaYpolys[%d] = ", i);
+		encoding->print(alphaYpolys[i]);
+		printf("\n");
+	}
+
+	if (!designatedVerifier) {
+		encoding->print(*alphaY);				printf("\n\t");
+	}
+
+	if (isNIZK) {
+		encoding->print(*LYtAtS);				printf("\n\t");
+		encoding->print(*LalphaYTatS);	printf("\n\t");
+		encoding->print(*LbetaYTatS);		printf("\n\t");
 	}
 }
 
